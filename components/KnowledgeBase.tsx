@@ -1,7 +1,28 @@
-import React from 'react';
-import { FolderOpen, FileText, Database, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FolderOpen, FileText, Database, ShieldCheck, Activity, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { testApiConnection } from '../services/gemini';
 
 const KnowledgeBase: React.FC = () => {
+  const [apiStatus, setApiStatus] = useState<{ loading: boolean; success: boolean | null; message: string }>({
+    loading: true,
+    success: null,
+    message: 'Verificando conexão...'
+  });
+
+  const checkStatus = async () => {
+    setApiStatus(prev => ({ ...prev, loading: true }));
+    const result = await testApiConnection();
+    setApiStatus({
+      loading: false,
+      success: result.success,
+      message: result.message
+    });
+  };
+
+  useEffect(() => {
+    checkStatus();
+  }, []);
+
   const folders = [
     {
       name: 'Legislação Federal',
@@ -28,19 +49,57 @@ const KnowledgeBase: React.FC = () => {
           Base de Conhecimento
         </h2>
         <p className="text-sm text-slate-500 mt-1">
-          Documentos carregados no contexto do Agente de IA para fundamentar as respostas.
+          Documentos e status técnico do Agente de IA.
         </p>
       </div>
 
-      <div className="p-6 max-w-6xl mx-auto w-full grid gap-6">
+      <div className="p-6 max-w-6xl mx-auto w-full space-y-6">
         
+        {/* API Health Status Card */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+            <h4 className="font-semibold text-slate-700 flex items-center gap-2">
+              <Activity size={18} className="text-blue-600" />
+              Status do Sistema (API Gemini)
+            </h4>
+            <button 
+              onClick={checkStatus}
+              disabled={apiStatus.loading}
+              className="text-slate-400 hover:text-blue-600 transition-colors"
+              title="Recarregar status"
+            >
+              <RefreshCw size={16} className={apiStatus.loading ? 'animate-spin' : ''} />
+            </button>
+          </div>
+          <div className="p-6 flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+              apiStatus.loading ? 'bg-slate-100' : apiStatus.success ? 'bg-emerald-100' : 'bg-red-100'
+            }`}>
+              {apiStatus.loading ? (
+                <RefreshCw className="w-6 h-6 text-slate-400 animate-spin" />
+              ) : apiStatus.success ? (
+                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+              ) : (
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              )}
+            </div>
+            <div>
+              <p className={`text-sm font-bold ${
+                apiStatus.loading ? 'text-slate-500' : apiStatus.success ? 'text-emerald-700' : 'text-red-700'
+              }`}>
+                {apiStatus.loading ? 'Verificando...' : apiStatus.success ? 'Sistema Online' : 'Problema Detectado'}
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">{apiStatus.message}</p>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
             <ShieldCheck className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
             <div>
                 <h4 className="font-semibold text-blue-800">Ambiente Seguro</h4>
                 <p className="text-sm text-blue-700 mt-1">
-                    Esta base de conhecimento é processada pelo Google AI Studio dentro de um contêiner isolado. 
-                    As respostas do chat utilizam exclusivamente este contexto para garantir conformidade legal.
+                    As respostas do chat utilizam exclusivamente os documentos listados abaixo como contexto prioritário para garantir conformidade legal com a Lei 14.133/2021.
                 </p>
             </div>
         </div>
@@ -62,7 +121,7 @@ const KnowledgeBase: React.FC = () => {
               </ul>
               <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
                 <button className="text-xs font-medium text-slate-500 hover:text-blue-600 uppercase tracking-wider">
-                  Gerenciar Arquivos
+                  Ver Conteúdo
                 </button>
               </div>
             </div>

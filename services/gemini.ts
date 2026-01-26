@@ -19,50 +19,100 @@ Regras de Segurança:
 - Não invente leis ou artigos.
 `;
 
+/**
+ * Função para testar a saúde da API. 
+ * Útil para verificar se process.env.API_KEY está configurada e funcional.
+ */
+export const testApiConnection = async (): Promise<{ success: boolean; message: string }> => {
+  if (!process.env.API_KEY || process.env.API_KEY === 'undefined') {
+    return { success: false, message: "Chave API não configurada no ambiente (process.env.API_KEY)." };
+  }
+
+  try {
+    // Chamada ultra-leve apenas para validar a chave
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: 'Ping',
+      config: { maxOutputTokens: 5 }
+    });
+    
+    if (response.text) {
+      return { success: true, message: "Conexão com Gemini API estabelecida com sucesso." };
+    }
+    return { success: false, message: "Resposta vazia da API." };
+  } catch (error: any) {
+    console.error("Erro de conexão API:", error);
+    if (error.message?.includes('401') || error.message?.includes('403')) {
+      return { success: false, message: "Chave API Inválida ou sem permissão (401/403)." };
+    }
+    return { success: false, message: `Erro na API: ${error.message || 'Erro desconhecido'}` };
+  }
+};
+
 export const sendMessageToGemini = async (message: string): Promise<string> => {
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: message,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.3, // Low temperature for more factual/legal accuracy
+        temperature: 0.3,
       },
     });
     
     return response.text || "Não foi possível gerar uma resposta no momento.";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error communicating with Gemini:", error);
+    if (error.message?.includes('401')) return "Erro de Autenticação: Verifique se a API_KEY foi configurada corretamente no servidor.";
     return "Erro ao consultar o assistente. Verifique sua conexão ou tente novamente mais tarde.";
   }
 };
 
 export const generateDocumentDraft = async (
-  docType: string,
-  object: string,
-  justification: string,
-  quantity: string
+  formData: any
 ): Promise<string> => {
   const prompt = `
-  Aja como um assistente administrativo experiente.
-  Gere uma **minuta simplificada** de um ${docType} para a seguinte demanda:
+  Aja como um consultor jurídico especializado na Lei 14.133/2021.
+  Gere uma minuta técnica de **${formData.docType}** utilizando os seguintes parâmetros:
+
+  **IDENTIFICAÇÃO:**
+  - Órgão: ${formData.orgao} (CNPJ: ${formData.cnpj})
+  - Setor: ${formData.setor}
+  - Objeto: ${formData.objeto}
+  ${formData.justificativa ? `- Justificativa Base: ${formData.justificativa}` : ''}
+  - Processo: ${formData.processo}
+  ${formData.numeroEdital ? `- Edital nº: ${formData.numeroEdital}` : ''}
+
+  **LOCALIZAÇÃO:**
+  - Endereço: ${formData.endereco}, ${formData.bairro}, ${formData.cidade}-${formData.uf} (CEP: ${formData.cep})
+
+  **PARÂMETROS DA CONTRATAÇÃO:**
+  - Modalidade: ${formData.modalidade}
+  - Critério de Julgamento: ${formData.criterio}
+  - Registro de Preços (SRP): ${formData.isSRP ? 'Sim' : 'Não'}
+  - TIC: ${formData.isTIC ? 'Sim' : 'Não'}
+  - Benefício ME/EPP: ${formData.isMEEPP ? 'Sim' : 'Não'}
+  - Valor Estimado: ${formData.valorEstimadoStatus === 'divulgado' ? 'R$ ' + formData.valorEstimado : 'Sigiloso'}
+  - Modo de Disputa: ${formData.modoDisputa}
+
+  **INSTRUÇÕES DE ESTRUTURA:**
+  1. Se for Edital: Inclua Capa formal, Capítulos de Objeto, Participação, Julgamento, Sanções e Foro.
+  2. Se for TR: Foque em Descrição do Objeto, Especificações Técnicas, Entrega e Critérios de Aceitação.
+  3. Se for ETP: Foque em Descrição da Necessidade, Estimativa de Quantidades, Levantamento de Mercado e Viabilidade.
+  4. Se for Pesquisa de Preços: Estruture como um relatório de orçamentos e metodologia de preço médio/mediana.
   
-  - Objeto: ${object}
-  - Quantidade/Estimativa: ${quantity}
-  - Justificativa da Necessidade: ${justification}
-  
-  A minuta deve conter campos entre colchetes [COMO ESTE] para preenchimento posterior onde faltarem dados.
-  Use linguagem formal adequada à administração pública.
+  Utilize linguagem jurídica formal mas moderna da Lei 14.133/2021. Use colchetes [ ] para campos que o usuário deve preencher manualmente.
   `;
 
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
     });
     return response.text || "Não foi possível gerar a minuta.";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating document:", error);
+    if (error.message?.includes('401')) return "Erro de Autenticação: A chave API não é válida para este modelo (Gemini 1.5 Pro).";
     return "Erro ao gerar a minuta. Tente novamente.";
   }
 };
