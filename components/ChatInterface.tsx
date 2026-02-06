@@ -1,20 +1,39 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Send, User, Bot, Loader2, Eraser } from 'lucide-react';
+import { Send, User, Bot, Loader2, Eraser, BrainCircuit, ChevronDown, ChevronRight } from 'lucide-react';
 import { Message, SenderType } from '../types';
 import { sendMessageToGemini } from '../services/gemini';
+
+// Helper to parse the thought process from the response
+const parseMessageContent = (text: string) => {
+  const thoughtMatch = text.match(/\|\|\|THOUGHT\|\|\|([\s\S]*?)\|\|\|RESPONSE\|\|\|/);
+  
+  if (thoughtMatch) {
+    return {
+      thought: thoughtMatch[1].trim(),
+      response: text.replace(thoughtMatch[0], '').trim()
+    };
+  }
+  
+  return {
+    thought: null,
+    response: text
+  };
+};
 
 const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Olá! Sou seu assistente de licitações. Em que posso ajudar hoje? (Ex: Como comprar 50 lápis? Quais os documentos para um Pregão?)',
+      text: 'Olá! Sou seu Agente Especialista em Licitações (Lei 14.133/21). Posso analisar casos, citar leis e orientar processos. Como posso ajudar?',
       sender: SenderType.BOT,
       timestamp: new Date(),
     },
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // State to track expanded thought processes by message ID
+  const [expandedThoughts, setExpandedThoughts] = useState<Record<string, boolean>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -24,6 +43,13 @@ const ChatInterface: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const toggleThought = (msgId: string) => {
+    setExpandedThoughts(prev => ({
+      ...prev,
+      [msgId]: !prev[msgId]
+    }));
+  };
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
@@ -68,6 +94,7 @@ const ChatInterface: React.FC = () => {
           timestamp: new Date(),
         },
     ]);
+    setExpandedThoughts({});
   }
 
   return (
@@ -75,8 +102,11 @@ const ChatInterface: React.FC = () => {
       {/* Header Area */}
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
         <div>
-          <h2 className="text-xl font-semibold text-slate-800">Consultas Normativas</h2>
-          <p className="text-sm text-slate-500">Tire dúvidas sobre a Lei 14.133/2021 e processos operacionais.</p>
+          <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+            <Bot className="text-blue-600" size={24}/>
+            Consultor Normativo
+          </h2>
+          <p className="text-sm text-slate-500">Agente especialista com raciocínio jurídico (Lei 14.133/2021).</p>
         </div>
         <button 
             onClick={clearChat}
@@ -89,44 +119,66 @@ const ChatInterface: React.FC = () => {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex items-start gap-3 ${
-              msg.sender === SenderType.USER ? 'flex-row-reverse' : 'flex-row'
-            }`}
-          >
+        {messages.map((msg) => {
+          const { thought, response } = msg.sender === SenderType.BOT ? parseMessageContent(msg.text) : { thought: null, response: msg.text };
+          
+          return (
             <div
-              className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                msg.sender === SenderType.USER ? 'bg-blue-600 text-white' : 'bg-emerald-600 text-white'
+              key={msg.id}
+              className={`flex items-start gap-3 ${
+                msg.sender === SenderType.USER ? 'flex-row-reverse' : 'flex-row'
               }`}
             >
-              {msg.sender === SenderType.USER ? <User size={16} /> : <Bot size={16} />}
+              <div
+                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                  msg.sender === SenderType.USER ? 'bg-blue-600 text-white' : 'bg-emerald-600 text-white'
+                }`}
+              >
+                {msg.sender === SenderType.USER ? <User size={16} /> : <Bot size={16} />}
+              </div>
+              
+              <div className={`flex flex-col max-w-[85%] md:max-w-[70%] ${msg.sender === SenderType.USER ? 'items-end' : 'items-start'}`}>
+                {/* Agent Thought Process Block */}
+                {thought && (
+                  <div className="mb-2 w-full">
+                    <button 
+                      onClick={() => toggleThought(msg.id)}
+                      className="flex items-center gap-2 text-xs font-semibold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-lg transition-colors w-full"
+                    >
+                      <BrainCircuit size={14} />
+                      Raciocínio do Agente
+                      {expandedThoughts[msg.id] ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
+                    </button>
+                    
+                    {expandedThoughts[msg.id] && (
+                      <div className="mt-1 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-slate-700 animate-fade-in">
+                        <ReactMarkdown>{thought}</ReactMarkdown>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div
+                  className={`rounded-2xl px-5 py-4 shadow-sm text-sm leading-relaxed ${
+                    msg.sender === SenderType.USER
+                      ? 'bg-blue-600 text-white rounded-tr-none'
+                      : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none prose prose-sm max-w-none'
+                  }`}
+                >
+                  <ReactMarkdown>{response}</ReactMarkdown>
+                </div>
+              </div>
             </div>
-            
-            <div
-              className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-5 py-4 shadow-sm text-sm leading-relaxed ${
-                msg.sender === SenderType.USER
-                  ? 'bg-blue-600 text-white rounded-tr-none'
-                  : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none prose prose-sm max-w-none'
-              }`}
-            >
-              {msg.sender === SenderType.USER ? (
-                msg.text
-              ) : (
-                <ReactMarkdown>{msg.text}</ReactMarkdown>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {isLoading && (
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center">
               <Bot size={16} />
             </div>
             <div className="bg-white border border-slate-200 px-4 py-3 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-              <span className="text-xs text-slate-500 font-medium">Analisando legislação...</span>
+              <BrainCircuit className="w-4 h-4 animate-pulse text-emerald-600" />
+              <span className="text-xs text-slate-500 font-medium">Agente analisando legislação e riscos...</span>
             </div>
           </div>
         )}
@@ -140,7 +192,7 @@ const ChatInterface: React.FC = () => {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder="Descreva sua dúvida (ex: documentos para dispensa de licitação)"
+            placeholder="Pergunte ao Agente (ex: Posso dispensar licitação para obra de R$ 90 mil?)"
             className="flex-1 bg-transparent border-none focus:ring-0 resize-none max-h-32 min-h-[44px] py-2.5 px-3 text-slate-800 placeholder-slate-400 text-sm"
             rows={1}
             style={{ minHeight: '44px' }}
@@ -158,7 +210,7 @@ const ChatInterface: React.FC = () => {
           </button>
         </div>
         <p className="text-center text-xs text-slate-400 mt-2">
-          As respostas são baseadas na Lei 14.133/2021. Verifique sempre com a assessoria jurídica.
+          IA pode cometer erros. Verifique as fontes (Lei 14.133/2021) citadas pelo agente.
         </p>
       </div>
     </div>
