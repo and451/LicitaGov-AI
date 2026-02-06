@@ -25,7 +25,7 @@ const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'Olá! Sou seu Agente Especialista em Licitações (Lei 14.133/21). Posso analisar casos, citar leis e orientar processos. Como posso ajudar?',
+      text: 'Olá! Sou seu Agente Especialista em Licitações (Lei 14.133/2021). Posso analisar casos, citar leis e orientar processos. Como posso ajudar?',
       sender: SenderType.BOT,
       timestamp: new Date(),
     },
@@ -97,6 +97,34 @@ const ChatInterface: React.FC = () => {
     setExpandedThoughts({});
   }
 
+  // Custom components for Markdown rendering (specifically for Tables)
+  const markdownComponents = {
+    table: (props: any) => (
+      <div className="overflow-x-auto my-4 rounded-lg border border-slate-200 shadow-sm bg-white">
+        <table className="w-full text-sm text-left text-slate-700 divide-y divide-slate-200" {...props} />
+      </div>
+    ),
+    thead: (props: any) => (
+      <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-600" {...props} />
+    ),
+    tbody: (props: any) => (
+      <tbody className="divide-y divide-slate-200 bg-white" {...props} />
+    ),
+    tr: (props: any) => (
+      <tr className="hover:bg-slate-50 transition-colors" {...props} />
+    ),
+    th: (props: any) => (
+      <th className="px-4 py-3 whitespace-nowrap bg-slate-50 text-slate-700 font-bold border-b border-slate-200" {...props} />
+    ),
+    td: (props: any) => (
+      <td className="px-4 py-3 align-top" {...props} />
+    ),
+    // Styling links to make them distinct
+    a: (props: any) => (
+      <a className="text-blue-600 hover:text-blue-800 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
+    )
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-50">
       {/* Header Area */}
@@ -152,7 +180,7 @@ const ChatInterface: React.FC = () => {
                     
                     {expandedThoughts[msg.id] && (
                       <div className="mt-1 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-slate-700 animate-fade-in">
-                        <ReactMarkdown>{thought}</ReactMarkdown>
+                        <ReactMarkdown components={markdownComponents}>{thought}</ReactMarkdown>
                       </div>
                     )}
                   </div>
@@ -165,7 +193,9 @@ const ChatInterface: React.FC = () => {
                       : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none prose prose-sm max-w-none'
                   }`}
                 >
-                  <ReactMarkdown>{response}</ReactMarkdown>
+                  <ReactMarkdown components={msg.sender === SenderType.BOT ? markdownComponents : undefined}>
+                    {response}
+                  </ReactMarkdown>
                 </div>
               </div>
             </div>

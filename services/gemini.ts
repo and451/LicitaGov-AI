@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
 // Initialize Gemini Client
@@ -101,10 +102,17 @@ export const generateDocumentDraft = async (
   - Valor Estimado: ${formData.valorEstimadoStatus === 'divulgado' ? 'R$ ' + formData.valorEstimado : 'Sigiloso'}
   - Modo de Disputa: ${formData.modoDisputa}
 
+  **PRAZOS E DETALHES DE EXECUÇÃO:**
+  - Vigência: ${formData.vigencia ? formData.vigencia + ' ' + formData.unidadeVigencia : 'A definir'}
+  - Prazo de Entrega/Execução: ${formData.prazoEntrega ? formData.prazoEntrega + ' dias' : 'Conforme cronograma'}
+  - Garantia Contratual: ${formData.temGarantia ? 'Sim, 5% do valor do contrato' : 'Não exigida'}
+  - Matriz de Riscos: ${formData.temMatrizRiscos ? 'Incluir cláusula/anexo de Matriz de Riscos' : 'Não aplicável'}
+
   **INSTRUÇÕES DE ESTRUTURA E AGENTE:**
   1. Atue com rigor técnico (citando artigos da Lei 14.133).
   2. Estruture o documento com cláusulas claras.
   3. Se for TR/ETP, inclua seções de sustentabilidade e análise de riscos.
+  4. Utilize os dados de vigência e garantia para criar as respectivas cláusulas.
   
   Utilize linguagem jurídica formal mas moderna da Lei 14.133/2021. Use colchetes [ ] para campos que o usuário deve preencher manualmente.
   `;

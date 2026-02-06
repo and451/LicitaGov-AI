@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { 
   FileText, Wand2, Download, Copy, Check, Loader2, Edit3, Eye, 
-  Save, Trash2, History, FileDown, Building2, MapPin, Settings2, FileStack, Sparkles
+  Save, Trash2, History, FileDown, Building2, MapPin, Settings2, FileStack, Sparkles, CalendarClock
 } from 'lucide-react';
 import { generateDocumentDraft } from '../services/gemini';
 
@@ -70,7 +70,13 @@ const DocGenerator: React.FC = () => {
     isMargemPreferencia: false,
     valorEstimadoStatus: 'divulgado',
     valorEstimado: '',
-    modoDisputa: 'Aberto'
+    modoDisputa: 'Aberto',
+    // New detailed fields
+    vigencia: '',
+    prazoEntrega: '',
+    temGarantia: false,
+    temMatrizRiscos: false,
+    unidadeVigencia: 'Meses'
   });
   
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -328,10 +334,10 @@ const DocGenerator: React.FC = () => {
                       <input type="checkbox" name="isTIC" checked={formData.isTIC} onChange={handleInputChange} className="w-4 h-4"/> Contratação TIC
                     </label>
                     <label className="flex items-center gap-2 text-xs font-medium text-slate-700 p-2 border rounded-lg cursor-pointer hover:bg-slate-50">
-                      <input type="checkbox" name="isSRP" checked={formData.isSRP} onChange={handleInputChange} className="w-4 h-4"/> Registro de Preços
+                      <input type="checkbox" name="isSRP" checked={formData.isSRP} onChange={handleInputChange} className="w-4 h-4"/> Registro de Preços (SRP)
                     </label>
                     <label className="flex items-center gap-2 text-xs font-medium text-slate-700 p-2 border rounded-lg cursor-pointer hover:bg-slate-50">
-                      <input type="checkbox" name="isMEEPP" checked={formData.isMEEPP} onChange={handleInputChange} className="w-4 h-4"/> Benefício ME/EPP
+                      <input type="checkbox" name="isMEEPP" checked={formData.isMEEPP} onChange={handleInputChange} className="w-4 h-4"/> Benefício para ME/EPP
                     </label>
                   </div>
                   
@@ -355,6 +361,38 @@ const DocGenerator: React.FC = () => {
                       </select>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* Seção 4: Prazos e Execução */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="bg-slate-50 px-6 py-4 border-b flex items-center gap-2 font-semibold text-slate-700">
+                <CalendarClock size={18} className="text-blue-600"/> Prazos e Detalhes da Execução
+              </div>
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Vigência Contratual</label>
+                  <div className="flex gap-2">
+                    <input type="number" name="vigencia" value={formData.vigencia} onChange={handleInputChange} placeholder="Ex: 12" className="flex-1 border rounded-lg p-2 text-sm"/>
+                    <select name="unidadeVigencia" value={formData.unidadeVigencia} onChange={handleInputChange} className="border rounded-lg p-2 text-sm bg-slate-50">
+                      <option>Meses</option>
+                      <option>Anos</option>
+                      <option>Dias</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Prazo de Entrega/Execução (Dias)</label>
+                  <input type="number" name="prazoEntrega" value={formData.prazoEntrega} onChange={handleInputChange} placeholder="Ex: 30" className="w-full border rounded-lg p-2 text-sm"/>
+                </div>
+                <div className="md:col-span-2 grid grid-cols-2 gap-4 mt-2">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-700 p-3 border rounded-lg cursor-pointer hover:bg-slate-50">
+                    <input type="checkbox" name="temGarantia" checked={formData.temGarantia} onChange={handleInputChange} className="w-4 h-4"/> Exige Garantia Contratual (5%)
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-700 p-3 border rounded-lg cursor-pointer hover:bg-slate-50">
+                    <input type="checkbox" name="temMatrizRiscos" checked={formData.temMatrizRiscos} onChange={handleInputChange} className="w-4 h-4"/> Incluir Matriz de Riscos
+                  </label>
                 </div>
               </div>
             </div>
